@@ -8,6 +8,7 @@ import os
 import shutil
 import pandas as pd
 import json
+from pydantic import BaseModel
 from .models import User, UserData
 from .database import get_session, init_db
 from .auth import (
@@ -23,6 +24,11 @@ from .ml import generate_heatmap_data, train_linear_model_results
 from datetime import timedelta
 
 app = FastAPI(title="AI Data Analytics Project")
+
+
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
 
 # CORS configuration
 app.add_middleware(
@@ -78,6 +84,23 @@ async def login_for_access_token(
         "role": user.role,
         "username": user.username
     }
+
+
+@app.post("/auth/register")
+async def register_user(payload: RegisterRequest, session: Session = Depends(get_session)):
+    existing = session.exec(select(User).where(User.username == payload.username)).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Username already exists")
+
+    user = User(
+        username=payload.username,
+        hashed_password=get_password_hash(payload.password),
+        role="user",
+    )
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return {"message": "User registered successfully", "username": user.username}
 
 @app.post("/data/upload")
 async def upload_file(

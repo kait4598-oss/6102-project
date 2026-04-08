@@ -15,10 +15,16 @@ api.interceptors.request.use((config) => {
 });
 
 export const login = async (username: string, password: string) => {
-  const formData = new FormData();
-  formData.append('username', username);
-  formData.append('password', password);
-  return api.post('/auth/login', formData);
+  const form = new URLSearchParams();
+  form.append('username', username);
+  form.append('password', password);
+  return api.post('/auth/login', form, {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  });
+};
+
+export const register = async (username: string, password: string) => {
+  return api.post('/auth/register', { username, password });
 };
 
 export const uploadData = async (file: File) => {
