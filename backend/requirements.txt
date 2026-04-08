@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+gunicorn
+sqlmodel
+dashscope
+pandas
+scikit-learn
+python-multipart
+python-jose[cryptography]
+passlib[bcrypt]
+pydantic-settings
+python-dotenv
+matplotlib
+seaborn
+jinja2
+openpyxl
