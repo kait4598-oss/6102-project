@@ -10,7 +10,7 @@ import pandas as pd
 import json
 from pydantic import BaseModel
 from .models import User, UserData
-from .database import get_session, init_db
+from .database import get_session, init_db, engine
 from .auth import (
     get_password_hash, 
     verify_password, 
@@ -48,7 +48,7 @@ os.makedirs(S3_SIM_DIR, exist_ok=True)
 def on_startup():
     init_db()
     # Create an admin user if not exists
-    with Session(next(get_session())) as session:
+    with Session(engine) as session:
         statement = select(User).where(User.username == "admin")
         admin = session.exec(statement).first()
         if not admin:
