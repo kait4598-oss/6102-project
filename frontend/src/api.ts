@@ -14,22 +14,22 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-export const login = async (username, password) => {
+export const login = async (username: string, password: string) => {
   const formData = new FormData();
   formData.append('username', username);
   formData.append('password', password);
   return api.post('/auth/login', formData);
 };
 
-export const uploadData = async (file) => {
+export const uploadData = async (file: File) => {
   const formData = new FormData();
   formData.append('file', file);
   return api.post('/data/upload', formData, {
-    headers: { 'Content-Type': 'multipart-form-data' },
+    headers: { 'Content-Type': 'multipart/form-data' },
   });
 };
 
-export const getDataAnalysis = async (dataId) => {
+export const getDataAnalysis = async (dataId: number) => {
   return api.get(`/data/analysis/${dataId}`);
 };
 
@@ -45,7 +45,7 @@ export const getAllData = async () => {
   return api.get('/admin/data');
 };
 
-export const deleteUserData = async (dataId) => {
+export const deleteUserData = async (dataId: number) => {
   return api.delete(`/admin/data/${dataId}`);
 };
 
