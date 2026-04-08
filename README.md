@@ -42,6 +42,8 @@
 
 使用 Amplify（前端）+ App Runner（后端）的部署说明见 [DEPLOYMENT_AWS.md](file:///e:/school/2-5/project/6102/DEPLOYMENT_AWS.md)。
 
+如果你的 AWS 环境无法使用 App Runner 的 GitHub 连接（常见于 Academy/Lab），可使用 EC2 部署，见 [DEPLOYMENT_EC2.md](file:///e:/school/2-5/project/6102/DEPLOYMENT_EC2.md)。
+
 ## 注意事项
 - 本项目中的 AI 预处理使用了模拟逻辑，若要接入真实的千问 AI，请在 `backend/ai.py` 中填入您的 `DASHSCOPE_API_KEY`。
 - 数据分析假定 CSV 文件的最后一列为预测目标值。
