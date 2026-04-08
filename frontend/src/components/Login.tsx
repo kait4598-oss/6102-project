@@ -17,8 +17,13 @@ const Login = () => {
       localStorage.setItem('token', access_token);
       localStorage.setItem('role', role);
       localStorage.setItem('username', returnedUsername || username);
-      if (role === 'admin') navigate('/admin');
-      else navigate('/user');
+      const target = role === 'admin' ? '/admin' : '/user';
+      navigate(target, { replace: true });
+      setTimeout(() => {
+        if (window.location.pathname === '/login') {
+          window.location.assign(target);
+        }
+      }, 50);
     } catch (err: any) {
       const detail = err.response?.data?.detail;
       if (typeof detail === 'string') setError(detail);
