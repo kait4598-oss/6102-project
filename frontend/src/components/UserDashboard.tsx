@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { uploadData, getMyData, getDataAnalysis } from '../api';
-import { useNavigate } from 'react-router-dom';
 import AnalysisDashboard from './AnalysisDashboard';
 
 const UserDashboard = () => {
@@ -9,7 +8,6 @@ const UserDashboard = () => {
   const [error, setError] = useState('');
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
-  const navigate = useNavigate();
 
   useEffect(() => {
     fetchHistory();
@@ -62,7 +60,8 @@ const UserDashboard = () => {
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('role');
-    navigate('/login');
+    localStorage.removeItem('username');
+    window.location.replace('/login');
   };
 
   return (

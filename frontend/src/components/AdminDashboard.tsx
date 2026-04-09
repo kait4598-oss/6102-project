@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { getAllUsers, getAllData, deleteUserData } from '../api';
-import { useNavigate } from 'react-router-dom';
 
 const AdminDashboard = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [dataFiles, setDataFiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     fetchAdminData();
@@ -39,7 +37,8 @@ const AdminDashboard = () => {
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('role');
-    navigate('/login');
+    localStorage.removeItem('username');
+    window.location.replace('/login');
   };
 
   return (
