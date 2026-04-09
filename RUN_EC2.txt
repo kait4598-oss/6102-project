@@ -1,0 +1,125 @@
+EC2 一键部署与运行（Ubuntu 22.04）
+
+前提：EC2 安全组入站规则至少放行
+1) SSH 22（建议仅允许你的公网 IP）
+2) HTTP 80（0.0.0.0/0）
+
+强烈建议：根卷 EBS 至少 30GB（8GB 会在构建时出现 no space left on device）
+
+========================================
+1) 安装 Docker + Compose
+========================================
+
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl gnupg git
+
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo \"$VERSION_CODENAME\") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+sudo usermod -aG docker $USER
+newgrp docker
+
+docker --version
+docker compose version
+
+========================================
+2)（推荐）增加 2GB Swap（避免前端 build 内存不够卡死）
+========================================
+
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+free -h
+
+========================================
+3) 拉取代码
+========================================
+
+cd ~
+git clone https://github.com/kait4598-oss/6102-project.git
+cd 6102-project
+
+========================================
+4) 创建服务器本地 .env（不要提交到 GitHub）
+========================================
+
+cat > .env << 'EOF'
+DASHSCOPE_API_KEY=你的通义千问Key
+EOF
+
+cat .env
+
+========================================
+5) 构建并启动（前后端一起）
+========================================
+
+docker compose up -d --build
+
+docker compose ps
+
+========================================
+6) 查看日志（排错用）
+========================================
+
+docker compose logs -f --tail=200
+
+单独看某个服务：
+docker compose logs -f --tail=200 backend
+docker compose logs -f --tail=200 web
+
+========================================
+7) 访问网页
+========================================
+
+在 EC2 控制台找到实例 Public IPv4，浏览器打开：
+http://<EC2公网IP>/login
+
+管理员账号：
+username: admin
+password: admin123
+
+========================================
+8) 停止/重启/重建
+========================================
+
+停止：
+docker compose down
+
+重启：
+docker compose up -d
+
+更新代码后重新部署：
+cd ~/6102-project
+git pull
+docker compose down
+docker compose up -d --build
+
+========================================
+9) 磁盘满了怎么办（no space left on device）
+========================================
+
+方案 A（推荐）：把 EBS 扩到 30–40GB，然后在系统里扩容分区/文件系统：
+
+lsblk
+df -h
+
+如果根盘是 /dev/xvda1：
+sudo growpart /dev/xvda 1
+sudo resize2fs /dev/xvda1
+
+如果根盘是 /dev/nvme0n1p1：
+sudo growpart /dev/nvme0n1 1
+sudo resize2fs /dev/nvme0n1p1
+
+然后清理 Docker 缓存并重建：
+docker compose down
+docker system prune -af
+docker compose up -d --build
+

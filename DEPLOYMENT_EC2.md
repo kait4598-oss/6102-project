@@ -11,6 +11,8 @@
   - SSH：TCP `22`（来源建议选你的 IP）
   - HTTP：TCP `80`（来源 `0.0.0.0/0`）
 
+强烈建议：根卷 EBS 至少 30GB（8GB 构建时很容易出现 `no space left on device`）。
+
 ## 2) 连接 EC2 并安装 Docker
 
 SSH 进入后执行：
@@ -60,6 +62,16 @@ nano .env
 DASHSCOPE_API_KEY=你的通义千问Key
 ```
 
+可选（推荐）：增加 2GB Swap，避免前端 build 内存不够卡死：
+
+```bash
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+free -h
+```
+
 ## 5) 启动（前后端一起）
 
 ```bash
@@ -93,3 +105,6 @@ docker compose down
 
 - 最省钱：演示结束后在 EC2 控制台 **Stop/Terminate** 实例（Terminate 会删除实例）。
 
+## 附：一键运行清单
+
+如果你想复制粘贴一套完整命令，请看根目录 `RUN_EC2.txt`。
