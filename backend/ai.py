@@ -30,13 +30,14 @@ def preprocess_data_with_ai(data) -> dict:
         return {"error": str(e)}
 
 def perform_ai_cleaning(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
     # 1. Handle missing values
     df = df.dropna()
     # 2. Normalize numerical features
     numeric_cols = df.select_dtypes(include=['number']).columns
     if not numeric_cols.empty:
-        df[numeric_cols] = (df[numeric_cols] - df[numeric_cols].mean()) / df[numeric_cols].std()
+        df.loc[:, numeric_cols] = (df[numeric_cols] - df[numeric_cols].mean()) / df[numeric_cols].std()
     # 3. Label encoding for objects
     for col in df.select_dtypes(include=['object']).columns:
-        df[col] = df[col].astype('category').cat.codes
+        df.loc[:, col] = df[col].astype('category').cat.codes
     return df

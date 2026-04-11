@@ -11,6 +11,8 @@ import json
 from pydantic import BaseModel
 import io
 import uuid
+from sqlalchemy import text
+from json import JSONDecodeError
 from .models import User, UserData
 from .database import get_session, init_db, engine
 from .auth import (
@@ -50,6 +52,17 @@ os.makedirs(S3_SIM_DIR, exist_ok=True)
 @app.on_event("startup")
 def on_startup():
     init_db()
+
+    try:
+        if engine.dialect.name == "mysql":
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE userdata MODIFY COLUMN analysis_results LONGTEXT"))
+                conn.execute(text("ALTER TABLE userdata MODIFY COLUMN original_data_path TEXT"))
+                conn.execute(text("ALTER TABLE userdata MODIFY COLUMN processed_data_path TEXT"))
+                conn.execute(text("ALTER TABLE userdata MODIFY COLUMN heatmap_path TEXT"))
+    except Exception:
+        pass
+
     # Create an admin user if not exists
     with Session(engine) as session:
         statement = select(User).where(User.username == "admin")
@@ -193,7 +206,13 @@ async def get_data_analysis(
     if not user_data or (user_data.user_id != current_user.id and current_user.role != "admin"):
         raise HTTPException(status_code=404, detail="Data not found")
     
-    return json.loads(user_data.analysis_results) if user_data.analysis_results else {}
+    if not user_data.analysis_results:
+        return {}
+
+    try:
+        return json.loads(user_data.analysis_results)
+    except JSONDecodeError:
+        return {"error": "Invalid analysis_results"}
 
 @app.get("/my-data")
 async def get_my_data(
