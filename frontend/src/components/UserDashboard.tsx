@@ -7,6 +7,7 @@ const UserDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [analysisData, setAnalysisData] = useState<any>(null);
+  const [selectedAnalysisId, setSelectedAnalysisId] = useState<number | null>(null);
   const [history, setHistory] = useState<any[]>([]);
 
   useEffect(() => {
@@ -35,6 +36,7 @@ const UserDashboard = () => {
     setError('');
     try {
       const uploadRes = await uploadData(file);
+      setSelectedAnalysisId(uploadRes.data.id);
       const analysisRes = await getDataAnalysis(uploadRes.data.id);
       setAnalysisData(analysisRes.data);
       fetchHistory();
@@ -47,11 +49,19 @@ const UserDashboard = () => {
 
   const viewAnalysis = async (id: number) => {
     setLoading(true);
+    setError('');
+    setSelectedAnalysisId(id);
+    setAnalysisData(null);
     try {
       const response = await getDataAnalysis(id);
       setAnalysisData(response.data);
+      setTimeout(() => {
+        document.getElementById('analysis-results')?.scrollIntoView({ behavior: 'smooth' });
+      }, 0);
     } catch (err) {
       console.error('Failed to fetch analysis', err);
+      const detail = (err as any)?.response?.data?.detail;
+      setError(typeof detail === 'string' ? detail : 'Failed to load analysis');
     } finally {
       setLoading(false);
     }
@@ -109,7 +119,7 @@ const UserDashboard = () => {
 
           {/* Analysis Dashboard */}
           {analysisData && (
-            <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <section id="analysis-results" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-gray-800">Analysis Results</h2>
                 <button 
@@ -119,7 +129,7 @@ const UserDashboard = () => {
                   Clear Results
                 </button>
               </div>
-              <AnalysisDashboard data={analysisData} />
+              <AnalysisDashboard key={selectedAnalysisId ?? 'current'} data={analysisData} />
             </section>
           )}
 
@@ -150,6 +160,7 @@ const UserDashboard = () => {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button
+                          type="button"
                           onClick={() => viewAnalysis(item.id)}
                           className="text-blue-600 hover:text-blue-800 font-semibold"
                         >
