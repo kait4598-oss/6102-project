@@ -30,9 +30,7 @@ export const register = async (username: string, password: string) => {
 export const uploadData = async (file: File) => {
   const formData = new FormData();
   formData.append('file', file);
-  return api.post('/data/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  return api.post('/data/upload', formData);
 };
 
 export const getDataAnalysis = async (dataId: number) => {

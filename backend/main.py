@@ -113,21 +113,33 @@ async def upload_file(
 ):
     if not (file.filename.endswith(".csv") or file.filename.endswith(".xlsx")):
         raise HTTPException(status_code=400, detail="Only CSV or Excel files are supported")
-    
-    content = await file.read()
 
-    if file.filename.endswith(".csv"):
-        df = pd.read_csv(io.BytesIO(content))
-    else:
-        df = pd.read_excel(io.BytesIO(content))
+    try:
+        content = await file.read()
+        if not content:
+            raise HTTPException(status_code=400, detail="Empty file")
+
+        if file.filename.endswith(".csv"):
+            df = pd.read_csv(io.BytesIO(content))
+        else:
+            df = pd.read_excel(io.BytesIO(content))
+    except HTTPException:
+        raise
+    except Exception as e:
+        msg = str(e)
+        raise HTTPException(status_code=400, detail=f"Failed to parse file: {msg[:200]}")
 
     bucket = get_s3_bucket_name()
     stored_path = None
     if bucket:
-        client = get_s3_client()
-        key = make_object_key(current_user.id, file.filename)
-        client.put_object(Bucket=bucket, Key=key, Body=content)
-        stored_path = to_s3_url(bucket, key)
+        try:
+            client = get_s3_client()
+            key = make_object_key(current_user.id, file.filename)
+            client.put_object(Bucket=bucket, Key=key, Body=content)
+            stored_path = to_s3_url(bucket, key)
+        except Exception as e:
+            msg = str(e)
+            raise HTTPException(status_code=500, detail=f"S3 upload failed: {msg[:200]}")
     else:
         local_path = os.path.join(S3_SIM_DIR, f"{current_user.id}_{uuid.uuid4().hex}_{file.filename}")
         with open(local_path, "wb") as buffer:
@@ -135,11 +147,15 @@ async def upload_file(
         stored_path = local_path
     
     # AI Preprocessing & ML Analysis
-    ai_results = preprocess_data_with_ai(df)
-    cleaned_df = perform_ai_cleaning(df)
-    
-    heatmap_data = generate_heatmap_data(cleaned_df)
-    ml_results, error = train_linear_model_results(cleaned_df)
+    try:
+        ai_results = preprocess_data_with_ai(df)
+        cleaned_df = perform_ai_cleaning(df)
+
+        heatmap_data = generate_heatmap_data(cleaned_df)
+        ml_results, error = train_linear_model_results(cleaned_df)
+    except Exception as e:
+        msg = str(e)
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {msg[:200]}")
     
     # Aggregate analysis results
     analysis_results = {
@@ -150,16 +166,20 @@ async def upload_file(
     }
     
     # Store in database
-    user_data = UserData(
-        user_id=current_user.id,
-        filename=file.filename,
-        original_data_path=stored_path,
-        model_accuracy=ml_results["accuracy"] if ml_results else 0.0,
-        analysis_results=json.dumps(analysis_results)
-    )
-    session.add(user_data)
-    session.commit()
-    session.refresh(user_data)
+    try:
+        user_data = UserData(
+            user_id=current_user.id,
+            filename=file.filename,
+            original_data_path=stored_path,
+            model_accuracy=ml_results["accuracy"] if ml_results else 0.0,
+            analysis_results=json.dumps(analysis_results)
+        )
+        session.add(user_data)
+        session.commit()
+        session.refresh(user_data)
+    except Exception as e:
+        msg = str(e)
+        raise HTTPException(status_code=500, detail=f"Failed to save results: {msg[:200]}")
     
     return {"id": user_data.id, "message": "File uploaded and processed successfully"}
 

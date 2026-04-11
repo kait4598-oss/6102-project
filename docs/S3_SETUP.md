@@ -65,3 +65,7 @@ docker compose up -d --build
 docker compose logs -f --tail=200 backend
 ```
 
+常见原因：
+
+- `AccessDenied`：EC2 没有挂可访问 S3 的 Role，或 Role 不包含对该 bucket 的 `PutObject` 权限
+- `NoCredentialsError`：实验账号环境无法创建/绑定 IAM Role，后端无法拿到 AWS 凭证（这时只能回退本地存储或由老师提供 Role）
