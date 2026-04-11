@@ -9,6 +9,8 @@ import shutil
 import pandas as pd
 import json
 from pydantic import BaseModel
+import io
+import uuid
 from .models import User, UserData
 from .database import get_session, init_db, engine
 from .auth import (
@@ -22,6 +24,7 @@ from .auth import (
 from .ai import preprocess_data_with_ai, perform_ai_cleaning
 from .ml import generate_heatmap_data, train_linear_model_results
 from datetime import timedelta
+from .s3_utils import get_s3_bucket_name, get_s3_client, make_object_key, to_s3_url, parse_s3_url
 
 app = FastAPI(title="AI Data Analytics Project")
 
@@ -39,7 +42,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Simulation of S3 and Local storage
+# Local storage fallback (when S3_BUCKET_NAME not set)
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 S3_SIM_DIR = os.path.join(STATIC_DIR, "s3_storage")
 os.makedirs(S3_SIM_DIR, exist_ok=True)
@@ -111,16 +114,28 @@ async def upload_file(
     if not (file.filename.endswith(".csv") or file.filename.endswith(".xlsx")):
         raise HTTPException(status_code=400, detail="Only CSV or Excel files are supported")
     
-    # Simulate S3 upload
-    s3_path = os.path.join(S3_SIM_DIR, f"{current_user.id}_{file.filename}")
-    with open(s3_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    
-    # Process with pandas
-    df = pd.read_csv(s3_path) if file.filename.endswith(".csv") else pd.read_excel(s3_path)
+    content = await file.read()
+
+    if file.filename.endswith(".csv"):
+        df = pd.read_csv(io.BytesIO(content))
+    else:
+        df = pd.read_excel(io.BytesIO(content))
+
+    bucket = get_s3_bucket_name()
+    stored_path = None
+    if bucket:
+        client = get_s3_client()
+        key = make_object_key(current_user.id, file.filename)
+        client.put_object(Bucket=bucket, Key=key, Body=content)
+        stored_path = to_s3_url(bucket, key)
+    else:
+        local_path = os.path.join(S3_SIM_DIR, f"{current_user.id}_{uuid.uuid4().hex}_{file.filename}")
+        with open(local_path, "wb") as buffer:
+            buffer.write(content)
+        stored_path = local_path
     
     # AI Preprocessing & ML Analysis
-    ai_results = preprocess_data_with_ai(s3_path)
+    ai_results = preprocess_data_with_ai(df)
     cleaned_df = perform_ai_cleaning(df)
     
     heatmap_data = generate_heatmap_data(cleaned_df)
@@ -138,7 +153,7 @@ async def upload_file(
     user_data = UserData(
         user_id=current_user.id,
         filename=file.filename,
-        original_data_path=s3_path,
+        original_data_path=stored_path,
         model_accuracy=ml_results["accuracy"] if ml_results else 0.0,
         analysis_results=json.dumps(analysis_results)
     )
@@ -196,9 +211,13 @@ async def delete_user_data(
     if not user_data:
         raise HTTPException(status_code=404, detail="Data not found")
     
-    # Physical delete simulation
-    if os.path.exists(user_data.original_data_path):
-        os.remove(user_data.original_data_path)
+    s3_loc = parse_s3_url(user_data.original_data_path)
+    if s3_loc:
+        client = get_s3_client()
+        client.delete_object(Bucket=s3_loc.bucket, Key=s3_loc.key)
+    else:
+        if os.path.exists(user_data.original_data_path):
+            os.remove(user_data.original_data_path)
     
     session.delete(user_data)
     session.commit()

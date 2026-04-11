@@ -60,7 +60,31 @@ nano .env
 
 ```bash
 DASHSCOPE_API_KEY=你的通义千问Key
+SECRET_KEY=请换成随机长字符串
+DATABASE_URL=postgresql+psycopg2://dbuser:dbpassword@your-aurora-endpoint:5432/yourdbname?sslmode=require
+SQL_ECHO=false
 ```
+
+说明：
+
+- `DATABASE_URL` 用于连接 Amazon RDS / Aurora（Aurora 也属于 RDS 服务）
+- `sslmode=require` 建议保留（Aurora/RDS 常用 TLS 连接）
+- 你需要在 RDS/Aurora 安全组里允许来自 EC2 安全组的 `5432` 入站
+
+如果你的数据库引擎是 MySQL（你在控制台看到 `MySQL Community`），则：
+
+- 端口通常是 `3306`
+- `DATABASE_URL` 形如：`mysql+pymysql://dbuser:dbpassword@endpoint:3306/dbname`
+- 安全组入站应允许来自 EC2 安全组的 `3306`
+
+如果你想把用户上传文件存到 S3，在 `.env` 里再加入：
+
+```bash
+S3_BUCKET_NAME=你的S3桶名
+AWS_REGION=us-east-1
+```
+
+并确保 EC2 绑定的 IAM Role 具备对该桶的 `PutObject/GetObject/DeleteObject` 权限。详细见 `docs/S3_SETUP.md`。
 
 可选（推荐）：增加 2GB Swap，避免前端 build 内存不够卡死：
 

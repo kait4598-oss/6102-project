@@ -2,6 +2,9 @@ fastapi
 uvicorn
 gunicorn
 sqlmodel
+psycopg2-binary
+boto3
+pymysql
 dashscope
 pandas
 scikit-learn

@@ -7,22 +7,20 @@ import os
 # You need to set DASHSCOPE_API_KEY environment variable
 # dashscope.api_key = "your-api-key"
 
-def preprocess_data_with_ai(csv_path: str) -> dict:
-    """
-    Uses Qwen AI to suggest preprocessing steps or perform basic cleaning logic description.
-    """
+def preprocess_data_with_ai(data) -> dict:
     try:
-        df = pd.read_csv(csv_path)
-        sample_data = df.head(5).to_json()
-        
-        # Simulated Qwen logic based on data analysis
+        if isinstance(data, pd.DataFrame):
+            df = data
+        else:
+            df = pd.read_csv(str(data))
+
         summary = f"The dataset contains {len(df)} records across {len(df.columns)} columns: {', '.join(df.columns)}."
         steps = [
             "Automatically detect and remove missing values.",
             "Normalize numerical columns for linear regression stability.",
             "Encode categorical variables to numeric for model compatibility."
         ]
-        
+
         return {
             "summary": summary,
             "steps": steps,

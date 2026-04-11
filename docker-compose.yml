@@ -5,6 +5,9 @@ services:
       dockerfile: Dockerfile
     environment:
       - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - SQL_ECHO=${SQL_ECHO}
     expose:
       - "8000"
 
@@ -18,4 +21,3 @@ services:
       - "80:80"
     depends_on:
       - backend
-

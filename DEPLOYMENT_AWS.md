@@ -42,6 +42,13 @@
    - Port：`8000`（本项目容器默认监听 `8000`，也支持 `PORT` 环境变量）
 7. Environment variables（至少建议配置）：
    - `DASHSCOPE_API_KEY`：通义千问 API Key（如不配置，AI 仍会走模拟逻辑，但建议配置）
+   - `DATABASE_URL`：RDS/Aurora PostgreSQL 连接串（示例：`postgresql+psycopg2://user:pass@endpoint:5432/dbname?sslmode=require`）
+   - `SECRET_KEY`：JWT 签名密钥（建议随机长字符串）
+
+数据库网络要点：
+
+- RDS/Aurora 的 VPC/子网需要与 App Runner 的网络访问策略匹配
+- RDS/Aurora 安全组入站需要允许来自 App Runner（或其 VPC 连接器/出站源）的 `5432`
 
 创建完成后，你会得到一个后端 URL，例如：
 
@@ -63,4 +70,3 @@ API 测试：
   - App Runner：删除 Service
   - Amplify：删除 App（或至少移除 Hosting）
 - 只把代码放 GitHub 不会产生 AWS 费用；一旦创建并运行 AWS 服务就会计费。
-
